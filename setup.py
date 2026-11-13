@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 setup(
     name="compras-emmanuelle",
     version="3.0.0",
-    description="Sistema de compras, auditoría y pronóstico - Droguería Emmanuelle",
+    description="Sistema de compras, auditoría y pronóstico - Empresa Ejemplo",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
