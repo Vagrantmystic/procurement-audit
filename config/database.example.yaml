@@ -1,0 +1,13 @@
+database:
+  server: "HOST_O_IP"
+  port: 1433
+  database: "NOMBRE_BASE"
+  username: "USUARIO_SOLO_LECTURA"
+  password: "CAMBIAR"
+  driver: "{ODBC Driver 17 for SQL Server}"
+  timeout: 15
+  read_only: true
+
+audit:
+  co_us_in: "SOPOR"
+  co_sucu_in: "01"

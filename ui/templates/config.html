@@ -1,0 +1,42 @@
+<section class="tab" id="tab-config">
+  <div class="grid two">
+    <article class="card">
+      <h2>Parámetros vigentes</h2>
+      <table class="table" id="configTable"><tbody></tbody></table>
+      <p class="hint">Para cambiarlos edite <code>config/parameters.yaml</code>, <code>config/proveedores.csv</code> o <code>config/productos.csv</code>.</p>
+    </article>
+    <article class="card">
+      <h2>Conexión Profit</h2>
+      <table class="table">
+        <tbody>
+          <tr><td>Servidor</td><td id="cfgServer">—</td></tr>
+          <tr><td>Base de datos</td><td id="cfgDatabase">—</td></tr>
+          <tr><td>Modo</td><td>Solo lectura (SELECT / WITH)</td></tr>
+          <tr><td>Credenciales</td><td>En <code>config/database.local.yaml</code> (no se muestran)</td></tr>
+        </tbody>
+      </table>
+      <p class="hint">La contraseña nunca se envía al navegador ni se registra en logs.</p>
+    </article>
+  </div>
+
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <h2>Almacenes para análisis y OC</h2>
+        <p>Seleccione los almacenes operativos de venta y stock. Las compras incluyen además el almacén de recepción para conservar el costo real.</p>
+      </div>
+    </div>
+    <div id="warehouseList" class="warehouse-list"><span class="empty">Cargando almacenes...</span></div>
+    <div class="form-row">
+      <label>Modo de compras
+        <select id="warehousePurchaseMode">
+          <option value="selected_plus_extra">Seleccionados + recepción (recomendado)</option>
+          <option value="selected_only">Solo seleccionados</option>
+        </select>
+      </label>
+      <button class="btn primary" id="saveWarehouses" type="button">Guardar almacenes</button>
+      <span class="hint" id="warehouseStatus">Los cambios aplican en la próxima ejecución.</span>
+    </div>
+    <p class="hint">El filtro se guarda en <code>config/warehouse_selection.json</code> (no versionado). Se aplica a ventas, stock, auditoría y órdenes.</p>
+  </article>
+</section>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 portrait; margin: 12mm 11mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color:#1b2433; font-size:10px; }
+  .top { border-bottom: 3px solid #2563eb; padding-bottom: 7px; margin-bottom: 10px; }
+  h1 { font-size: 19px; color:#12233f; margin:0; }
+  h2 { font-size: 12.5px; color:#12233f; border-bottom:1px solid #dbe3f0; padding-bottom:3px; margin:14px 0 7px; }
+  .muted { color:#6b778c; font-size:9px; }
+  .ficha { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:10px 0 6px; }
+  .ficha div { border:1px solid #e5e9f2; border-radius:6px; padding:8px; background:#f8faff; }
+  .ficha span { display:block; font-size:8px; text-transform:uppercase; color:#6b778c; letter-spacing:.3px; }
+  .ficha b { display:block; font-size:14px; color:#12233f; margin-top:3px; }
+  table { width:100%; border-collapse:collapse; margin:5px 0 8px; }
+  th { background:#1F3864; color:#fff; text-align:left; padding:4px 5px; font-size:8.5px; }
+  td { border-bottom:1px solid #e5e9f2; padding:4px 5px; font-size:8.5px; vertical-align:top; }
+  td.num, th.num { text-align:right; }
+  tr:nth-child(even) td { background:#f8faff; }
+  .chart { border:1px solid #e5e9f2; border-radius:6px; padding:6px; margin:8px 0; page-break-inside:avoid; }
+  .chart img { width:100%; max-height:220px; object-fit:contain; }
+  .footer { border-top:1px solid #d9dee8; padding-top:5px; margin-top:12px; color:#6b778c; font-size:8px; }
+  .tag { display:inline-block; border-radius:10px; background:#eef3ff; color:#1e40af; padding:2px 7px; font-size:8px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>{{ cliente }}</h1>
+  <p class="muted">Código {{ codigo }} · Período {{ desde }} a {{ hasta }} · Almacenes: {{ almacenes }} · Generado {{ generado }}</p>
+</div>
+
+<div class="ficha">
+  <div><span>Venta neta USD</span><b>{{ venta_usd }}</b></div>
+  <div><span>Margen</span><b>{{ margen_pct }}</b></div>
+  <div><span>Facturas</span><b>{{ facturas }}</b></div>
+  <div><span>Ticket promedio</span><b>{{ ticket_promedio }}</b></div>
+</div>
+<p class="muted">Venta Bs {{ venta_bs }} · Margen USD {{ margen_usd }} · Unidades {{ unidades }} · Última compra {{ ultima_compra }}</p>
+
+{% if chart %}
+<div class="chart"><p class="muted"><strong>Evolución mensual de compra</strong></p><img src="{{ chart }}" alt="Evolución mensual"></div>
+{% endif %}
+
+<h2>Laboratorios comprados</h2>
+<table>
+<thead><tr><th>Laboratorio</th><th class="num">Venta USD</th><th class="num">Margen %</th><th class="num">Unidades</th><th class="num">Facturas</th><th>Última</th></tr></thead>
+<tbody>
+{% for r in labs %}
+<tr><td>{{ r.Laboratorio }}</td><td class="num">{{ r.Venta_USD }}</td><td class="num">{{ r.Margen_Pct }}</td><td class="num">{{ r.Unidades }}</td><td class="num">{{ r.Facturas }}</td><td>{{ r.Ultima_Venta }}</td></tr>
+{% endfor %}
+</tbody></table>
+
+<h2>Productos comprados</h2>
+<table>
+<thead><tr><th>Producto</th><th>Laboratorio</th><th>Línea terapéutica</th><th class="num">Venta</th><th class="num">Unidades</th></tr></thead>
+<tbody>
+{% for r in productos %}
+<tr><td>{{ r.Descripcion }}</td><td>{{ r.Laboratorio }}</td><td>{{ r.Linea_Terapeutica }}</td><td class="num">{{ r.Venta_USD }}</td><td class="num">{{ r.Unidades }}</td></tr>
+{% endfor %}
+</tbody></table>
+
+<div class="footer">
+  <span>Droguería Emmanuelle · Módulo de Ventas · {{ filtros }}</span>
+  <span>Laboratorio real desde la dimensión maestra; SIN_LABORATORIO se conserva.</span>
+</div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Proveedor,Lead_Time_Dias,Dias_Revision,Minimo_Pedido,Multiplo_Compra,Descuento_1_Pct,Descuento_1_Desde,Descuento_2_Pct,Descuento_2_Desde,Activo,Notas
+DEFAULT,30,7,24,24,0,0,0,0,SI,Valores usados cuando el proveedor no aparece en esta tabla
+SIN ASIGNAR,30,7,24,24,0,0,0,0,SI,Producto sin proveedor en el catalogo maestro
+PROVEEDOR EJEMPLO A,30,7,24,24,5,1000,10,5000,SI,Reemplazar por proveedores reales
+PROVEEDOR EJEMPLO B,45,7,12,12,0,0,0,0,SI,Reemplazar por proveedores reales

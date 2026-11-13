@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ventas · Droguería Emmanuelle</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ventas.css') }}">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark">DE</div><div><strong>Droguería</strong><span>Emmanuelle</span></div></div>
+  <nav>
+    <a class="nav" href="/"><span>▦</span> Resumen compras</a>
+    <a class="nav" href="/#auditoria"><span>◔</span> Auditoría 2026</a>
+    <a class="nav" href="/#ordenes"><span>▤</span> Órdenes de compra</a>
+    <a class="nav {{ 'active' if vista == 'resumen' }}" href="/ventas"><span>◔</span> Ventas · Resumen 90d</a>
+    <a class="nav {{ 'active' if vista == 'laboratorios' }}" href="/ventas/laboratorios"><span>◈</span> Por laboratorio</a>
+    <a class="nav {{ 'active' if vista == 'productos' }}" href="/ventas/productos"><span>▤</span> Por producto</a>
+    <a class="nav {{ 'active' if vista == 'clientes' }}" href="/ventas/clientes"><span>◉</span> Por cliente</a>
+  </nav>
+  <div class="db-status"><span class="dot" id="dbDot"></span><span id="dbText">Profit · solo lectura</span></div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div>
+      <h1 id="pageTitle">Ventas · últimos 90 días</h1>
+      <p id="pageSub">Venta neta, margen, laboratorios, productos y clientes. Datos de Profit 2K12.</p>
+    </div>
+    <a class="btn ghost" href="/">Volver a compras</a>
+  </header>
+
+  <section class="filters">
+    <label>Desde<input type="date" id="fechaDesde"></label>
+    <label>Hasta<input type="date" id="fechaHasta"></label>
+    <div class="filter-field"><span>Almacenes</span>
+      <details class="multi" id="almacenDetails">
+        <summary id="almacenSummary">Seleccionar almacenes</summary>
+        <div id="almacenFiltro" class="multi-menu"></div>
+      </details>
+    </div>
+    <label>Laboratorio<select id="labFiltro"><option value="">Todos</option></select></label>
+    <label>Línea terapéutica<select id="lineaFiltro"><option value="">Todas</option></select></label>
+    <label>Categoría<select id="catFiltro"><option value="">Todas</option></select></label>
+    <button class="btn primary" id="aplicarFiltros" type="button">Actualizar</button>
+    <a class="btn ghost" id="exportar" href="/ventas/api/export">Exportar Excel</a>
+    <button class="btn ghost" id="exportarPdf" type="button">Exportar PDF</button>
+  </section>
+
+  <section class="kpis" id="kpis">
+    <div class="kpi"><div class="label">Venta neta</div><div class="value" id="kpiVenta">—</div><div class="note" id="kpiVentaDelta">vs. período anterior</div></div>
+    <div class="kpi"><div class="label">Margen bruto</div><div class="value" id="kpiMargen">—</div><div class="note" id="kpiMargenDelta">—</div></div>
+    <div class="kpi"><div class="label">Ticket promedio</div><div class="value" id="kpiTicket">—</div><div class="note" id="kpiTicketDelta">—</div></div>
+    <div class="kpi"><div class="label">Clientes activos</div><div class="value" id="kpiClientes">—</div><div class="note" id="kpiClientesDelta">—</div></div>
+    <div class="kpi"><div class="label">SKU vendidos</div><div class="value" id="kpiSku">—</div><div class="note" id="kpiSkuDelta">—</div></div>
+    <div class="kpi"><div class="label">Laboratorio #1</div><div class="value" id="kpiLab" style="font-size:15px">—</div><div class="note" id="kpiLabVenta">—</div></div>
+  </section>
+
+  <section class="grid">
+    <article class="card" id="sectionSerie">
+      <h2>Venta neta diaria</h2><p class="sub">USD · serie del período seleccionado</p>
+      <div class="chart tall"><canvas id="chartSerie"></canvas></div>
+    </article>
+    <article class="card" id="sectionMix">
+      <h2>Composición por laboratorio</h2><p class="sub">Participación sobre venta neta</p>
+      <div class="chart tall"><canvas id="chartMix"></canvas></div>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="card" id="sectionLabs">
+      <h2>Top laboratorios</h2><p class="sub">Seleccione un laboratorio en el filtro para acotar</p>
+      <div class="chart"><canvas id="chartLabs"></canvas></div>
+    </article>
+    <article class="card" id="sectionProducts">
+      <h2>Top productos</h2><p class="sub">Ranking por venta neta</p>
+      <div class="chart"><canvas id="chartProducts"></canvas></div>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="card" id="sectionLineas">
+      <h2>Top líneas terapéuticas</h2><p class="sub">Clasificación farmacológica; no es el laboratorio</p>
+      <div class="chart"><canvas id="chartLineas"></canvas></div>
+    </article>
+    <article class="card" id="sectionHeatmap">
+      <h2>Venta por día de semana</h2><p class="sub">Heatmap por mes (Profit no guarda hora de venta)</p>
+      <div id="heatmap" class="heatmap"></div>
+    </article>
+  </section>
+
+  <section class="card" id="sectionClients">
+    <h2>Top clientes</h2><p class="sub">Haga clic en un cliente para el drill-down</p>
+    <div class="chart"><canvas id="chartClients"></canvas></div>
+  </section>
+
+  <section class="card">
+    <h2>Detalle de clientes</h2>
+    <p class="sub">Ordenado por venta neta. Clic para ver laboratorios y productos.</p>
+    <div style="overflow:auto"><table class="table" id="tablaClientes"><thead>
+      <tr><th>Cliente</th><th class="num">Venta USD</th><th class="num">Margen %</th><th class="num">Facturas</th><th class="num">SKU</th><th>Última compra</th></tr>
+    </thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="card drill" id="drilldown">
+    <div class="drill-head"><h2 id="drillTitle">Drill-down cliente</h2>
+      <div><button class="btn primary" type="button" id="exportarClientePdf">Exportar PDF</button>
+      <button class="btn ghost" type="button" id="cerrarDrill">Cerrar</button></div></div>
+    <div class="ficha" id="drillFicha"></div>
+    <div class="grid">
+      <div><h2>Laboratorios comprados</h2><table class="table" id="tablaDrillLabs"><thead><tr><th>Laboratorio</th><th class="num">Venta</th><th class="num">Margen</th><th class="num">Unidades</th><th>Última</th></tr></thead><tbody></tbody></table></div>
+      <div><h2>Productos comprados</h2><table class="table" id="tablaDrillProd"><thead><tr><th>Producto</th><th class="num">Venta</th><th class="num">Unidades</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="chart" style="margin-top:12px"><canvas id="chartDrill"></canvas></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="overlay"><div class="spinner"></div></div>
+</main>
+<script>
+  window.VENTAS_VIEW = {{ (vista or 'resumen')|tojson }};
+  window.VENTAS_CLIENTE = {{ (cliente or '')|tojson }};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/ventas_charts.js') }}"></script>
+</body>
+</html>

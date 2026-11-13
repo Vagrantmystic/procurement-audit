@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 12mm 10mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color:#1b2433; font-size:10px; }
+  h1 { font-size:20px; color:#12233f; margin:0 0 3px; }
+  h2 { font-size:13px; color:#12233f; border-bottom:2px solid #2563eb; padding-bottom:3px; margin:16px 0 8px; }
+  .muted { color:#6b778c; font-size:9px; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0 14px; }
+  .kpi { border:1px solid #e5e9f2; border-radius:7px; padding:8px; background:#f8faff; }
+  .kpi b { display:block; font-size:15px; color:#12233f; margin-top:3px; }
+  .kpi span { font-size:8px; text-transform:uppercase; color:#6b778c; letter-spacing:.3px; }
+  .charts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .chart { border:1px solid #e5e9f2; border-radius:7px; padding:6px; page-break-inside:avoid; }
+  .chart img { width:100%; max-height:220px; object-fit:contain; }
+  table { width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:8.5px; }
+  th { background:#1F3864; color:#fff; text-align:left; padding:4px; }
+  td { border-bottom:1px solid #e5e9f2; padding:4px; vertical-align:top; }
+  td.num, th.num { text-align:right; }
+  tr:nth-child(even) td { background:#f8faff; }
+  .lab-row td:first-child { font-weight:600; }
+  .page-break { page-break-before:always; }
+  .footer { margin-top:14px; border-top:1px solid #d9dee8; padding-top:6px; color:#6b778c; font-size:8px; display:flex; justify-content:space-between; }
+</style>
+</head>
+<body>
+<h1>Ventas · {{ titulo }}</h1>
+<p class="muted">Período {{ desde }} a {{ hasta }} · {{ dias }} días · Almacenes: {{ almacenes }} · Generado {{ generado }}</p>
+
+<div class="kpis">
+  <div class="kpi"><span>Venta neta USD</span><b>{{ kpis.venta_usd }}</b></div>
+  <div class="kpi"><span>Venta neta Bs</span><b>{{ kpis.venta_bs }}</b></div>
+  <div class="kpi"><span>Margen bruto</span><b>{{ kpis.margen_pct }}</b></div>
+  <div class="kpi"><span>Ticket promedio</span><b>{{ kpis.ticket_promedio }}</b></div>
+  <div class="kpi"><span>Clientes activos</span><b>{{ kpis.clientes }}</b></div>
+  <div class="kpi"><span>SKU vendidos</span><b>{{ kpis.sku }}</b></div>
+  <div class="kpi"><span>Laboratorio #1</span><b style="font-size:12px">{{ kpis.top_laboratorio }}</b></div>
+  <div class="kpi"><span>Cobertura laboratorio</span><b>{{ kpis.cobertura_laboratorio }}</b></div>
+</div>
+
+<h2>Gráficas de la pantalla</h2>
+{% if charts %}
+<div class="charts">
+  {% for chart in charts %}
+  <div class="chart"><p class="muted"><strong>{{ chart.label }}</strong></p><img src="{{ chart.data }}" alt="{{ chart.label }}"></div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">El navegador no envió imágenes de gráficos; se muestran las tablas.</p>
+{% endif %}
+
+<h2>Ranking de laboratorios</h2>
+<table>
+<thead><tr><th>Laboratorio</th><th class="num">Venta USD</th><th class="num">Margen %</th><th class="num">Unidades</th><th class="num">Clientes</th></tr></thead>
+<tbody>
+{% for r in laboratorios %}
+<tr><td>{{ r.Laboratorio }}</td><td class="num">{{ r.Venta_USD }}</td><td class="num">{{ r.Margen_Pct }}</td><td class="num">{{ r.Unidades }}</td><td class="num">{{ r.Clientes }}</td></tr>
+{% endfor %}
+</tbody></table>
+
+<h2>Líneas terapéuticas (dimensión separada)</h2>
+<table>
+<thead><tr><th>Línea terapéutica</th><th class="num">Venta USD</th><th class="num">Margen %</th><th class="num">Unidades</th></tr></thead>
+<tbody>
+{% for r in lineas %}
+<tr><td>{{ r.Linea_Terapeutica }}</td><td class="num">{{ r.Venta_USD }}</td><td class="num">{{ r.Margen_Pct }}</td><td class="num">{{ r.Unidades }}</td></tr>
+{% endfor %}
+</tbody></table>
+
+<div class="page-break"></div>
+<h2>Detalle de clientes con sus laboratorios</h2>
+<p class="muted">Cada fila usa el laboratorio real de la dimensión maestra. Los SKU sin match aparecen como SIN_LABORATORIO y no se eliminan.</p>
+<table>
+<thead><tr><th>Cliente</th><th>Laboratorio</th><th class="num">Venta USD</th><th class="num">Margen USD</th><th class="num">Margen %</th><th class="num">Unidades</th><th class="num">Facturas</th><th>Última compra</th></tr></thead>
+<tbody>
+{% for c in clientes %}
+{% for r in c.labs %}
+<tr class="lab-row"><td>{{ c.cliente }}</td><td>{{ r.Laboratorio }}</td><td class="num">{{ r.Venta_USD }}</td><td class="num">{{ r.Margen_USD }}</td><td class="num">{{ r.Margen_Pct }}</td><td class="num">{{ r.Unidades }}</td><td class="num">{{ r.Facturas }}</td><td>{{ r.Ultima_Compra }}</td></tr>
+{% endfor %}
+{% endfor %}
+</tbody></table>
+
+<div class="footer"><span>Droguería Emmanuelle · Módulo de Ventas</span><span>Filtros: {{ filtros }}</span></div>
+</body>
+</html>

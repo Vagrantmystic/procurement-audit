@@ -1,0 +1,209 @@
+version: "1.0"
+sistema: "Droguería Emmanuelle - Órdenes de Compra"
+moneda: "USD"
+fuente_inventario: "Profit 2K12 v_saStockActual"
+
+principios:
+  - "La OC se calcula con ACT - COM; LLE nunca se suma."
+  - "LLE no es disponibilidad: es una bandera de pedido pendiente."
+  - "EOL, obsoleto, liquidación y excluido nunca generan OC automática."
+  - "Sobre el techo de precio o bajo el margen mínimo, la OC se bloquea."
+
+reglas:
+  - id: OC-01
+    tipo: DURO
+    tema: inventario
+    condicion: "Siempre"
+    accion: "Inventario_OC = max(0, ACT - COM); LLE = 0 en la fórmula"
+    excepcion: "Ninguna"
+    datos: [ACT, COM, LLE]
+    kpi: [cobertura_act, quiebre]
+    responsable: "Gerente de Compras"
+
+  - id: OC-02
+    tipo: DURO
+    tema: inventario
+    condicion: "LLE > 0"
+    accion: "No emitir OC automática; estado LLE_PENDIENTE; validar OC/ETA"
+    excepcion: "Si el tránsito no llega y hay riesgo de quiebre: OC parcial con aprobación"
+    datos: [LLE, LLE_Confirmado, OC_Abierta, ETA]
+    kpi: [oc_duplicada_lle]
+    responsable: "Gerente de Compras"
+
+  - id: OC-03
+    tipo: DURO
+    tema: inventario
+    condicion: "OC_Abierta = true"
+    accion: "No emitir nueva OC para el mismo EAN/proveedor"
+    excepcion: "Ninguna; esperar recepción"
+    datos: [OC_Abierta]
+    kpi: [oc_duplicada_lle]
+    responsable: "Analista de Compras"
+
+  - id: OC-04
+    tipo: PARAM
+    tema: inventario
+    condicion: "Need = S* - (ACT - COM) <= 0"
+    accion: "No emitir OC; estado STOCK_SUFICIENTE"
+    excepcion: "Ninguna"
+    datos: [ACT, COM, d, SS, LT, ciclo]
+    kpi: [cobertura_act, exceso]
+    responsable: "Analista de Compras"
+
+  - id: OC-05
+    tipo: PARAM
+    tema: inventario
+    condicion: "Cantidad < Mínimo_Compra"
+    accion: "No forzar compra si la cobertura post-orden supera Cobertura_Max"
+    excepcion: "Clase A/B y cobertura post-orden <= Cobertura_Max"
+    datos: [Minimo_Compra, Cobertura_Max, ABC]
+    kpi: [minimo_excede_cobertura]
+    responsable: "Jefe de Compras"
+
+  - id: EOL-01
+    tipo: DURO
+    tema: ciclo_vida
+    condicion: "Estado_Ciclo_Vida in [EOL, OBSOLETO, LIQUIDACION, EXCLUIDO, AGOTADO]"
+    accion: "Compra_Bloqueada = true; Punto_Pedido = 0; SS = 0; Cantidad_OC = 0"
+    excepcion: "Pedido firme de cliente/contrato con aprobación Compras + Comercial"
+    datos: [Estado_Ciclo_Vida, Compra_Bloqueada]
+    kpi: [oc_con_eol, valor_obsoleto]
+    responsable: "Gerente de Compras"
+
+  - id: EOL-02
+    tipo: PARAM
+    tema: ciclo_vida
+    condicion: "Sin ventas >= 180 días y stock > 0"
+    accion: "Marcar OBSOLETO; excluir de OC; iniciar liquidación"
+    excepcion: "Producto nuevo o estacional con justificación"
+    datos: [Dias_Sin_Venta, Stock_Actual]
+    kpi: [dias_agotar_eol, recuperacion_liquidacion]
+    responsable: "Gerente de Inventario"
+
+  - id: EOL-03
+    tipo: PARAM
+    tema: ciclo_vida
+    condicion: "Dias_Para_Vencer <= 180 y stock > 0"
+    accion: "Marcar LIQUIDACION; FEFO y descuento; no comprar"
+    excepcion: "Ninguna"
+    datos: [Dias_Para_Vencer, Stock_Actual]
+    kpi: [merma_vencimiento]
+    responsable: "Gerente de Inventario"
+
+  - id: EOL-04
+    tipo: PARAM
+    tema: ciclo_vida
+    condicion: "Sin ventas >= 90 días y sin stock inmovilizado"
+    accion: "Marcar EN_OBSERVACION; revisar antes de comprar"
+    excepcion: "Ninguna"
+    datos: [Dias_Sin_Venta, Stock_Actual]
+    kpi: [sku_observacion]
+    responsable: "Analista de Compras"
+
+  - id: PR-01
+    tipo: DURO
+    tema: precio
+    condicion: "Siempre"
+    accion: "P_ref = promedio ponderado USD de compras previas (90 días, mismo EAN/proveedor/unidad)"
+    excepcion: "Sin historial: SIN_REFERENCIA y revisión manual"
+    datos: [Precio_USD, Cantidad, Fecha, Proveedor]
+    kpi: [ipp, precio_sobre_techo]
+    responsable: "Jefe de Compras"
+
+  - id: PR-02
+    tipo: PARAM
+    tema: precio
+    condicion: "Var_Precio <= 5%"
+    accion: "Estado VERDE; compra normal"
+    excepcion: "Ninguna"
+    datos: [P_actual, P_ref]
+    kpi: [var_precio_revisada]
+    responsable: "Comprador"
+
+  - id: PR-03
+    tipo: PARAM
+    tema: precio
+    condicion: "5% < Var_Precio <= 10%"
+    accion: "Estado AMARILLO; revisar justificación del proveedor"
+    excepcion: "Ninguna"
+    datos: [P_actual, P_ref]
+    kpi: [var_precio_revisada]
+    responsable: "Jefe de Compras"
+
+  - id: PR-04
+    tipo: PARAM
+    tema: precio
+    condicion: "10% < Var_Precio <= 20% o impacto anual > USD 2.000"
+    accion: "Estado NARANJA; aprobación y negociación"
+    excepcion: "Ninguna"
+    datos: [P_actual, P_ref, Demanda_Anual]
+    kpi: [ahorro_negociado, precio_sobre_techo]
+    responsable: "Gerente de Compras"
+
+  - id: PR-05
+    tipo: DURO
+    tema: precio
+    condicion: "Var_Precio > 20% o P_actual > P_techo"
+    accion: "Estado ROJO; bloquear OC; negociar/2 cotizaciones"
+    excepcion: "Producto crítico sin alternativa: mínimo necesario con Gerencia General"
+    datos: [P_actual, P_ref, P_techo]
+    kpi: [precio_sobre_techo]
+    responsable: "Gerencia General"
+
+  - id: PR-06
+    tipo: DURO
+    tema: precio
+    condicion: "Margen_Nuevo < Margen_Minimo"
+    accion: "Estado MARGEN_BAJO; bloquear OC; repreciar o negociar"
+    excepcion: "Gerencia General con análisis de margen"
+    datos: [P_venta, P_actual, Margen_Minimo]
+    kpi: [margen_sku]
+    responsable: "Gerencia General"
+
+kpis:
+  cobertura_act:
+    formula: "(ACT - COM) / d"
+    meta: "45-90 días"
+  quiebre:
+    formula: "SKU con ACT=0 y venta>0 / SKU con venta"
+    meta: "< 2%"
+  oc_duplicada_lle:
+    formula: "OC con LLE>0 no validado / total OC"
+    meta: "0"
+  oc_con_eol:
+    formula: "OC con SKU bloqueado / total OC"
+    meta: "0"
+  valor_obsoleto:
+    formula: "Valor stock obsoleto / valor inventario"
+    meta: "< 2%"
+  dias_agotar_eol:
+    formula: "Stock / venta diaria plan"
+    meta: "< 90 días"
+  recuperacion_liquidacion:
+    formula: "Ingresos liquidación / valor a costo"
+    meta: "> 70%"
+  ipp:
+    formula: "Sum(P_actual*Q) / Sum(P_base*Q) * 100"
+    meta: "seguimiento mensual"
+  precio_sobre_techo:
+    formula: "OC con P > P_techo / total OC"
+    meta: "0"
+  ahorro_negociado:
+    formula: "(P_cotizado - P_negociado) * Q"
+    meta: "2-5% del gasto"
+  var_precio_revisada:
+    formula: "SKU >10% con revisión / SKU >10%"
+    meta: "100%"
+  margen_sku:
+    formula: "(P_venta - costo) / P_venta"
+    meta: ">= margen mínimo"
+
+flujo:
+  - "1. Snapshot: ACT, COM, LLE, OC abierta, ETA, ventas 90d, ciclo de vida, precio."
+  - "2. Si estado bloqueado -> NO OC; reportar EOL/liquidación."
+  - "3. Calcular d, SS, S* y Need con ACT - COM."
+  - "4. Si Need <= 0 -> NO OC."
+  - "5. Evaluar precio: ROJO/MARGEN_BAJO -> NO OC; NARANJA/AMARILLO -> aprobación."
+  - "6. Si LLE > 0 -> NO OC; validar OC/ETA; excepción si no llega."
+  - "7. Ajustar mínimo, múltiplo y cobertura máxima."
+  - "8. Emitir OC con trazabilidad de ACT, LLE, ciclo de vida y precio."

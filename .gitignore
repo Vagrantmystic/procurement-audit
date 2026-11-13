@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# ---------------------------------------------------------------------------
+# DATOS DE NEGOCIO Y CREDENCIALES - NUNCA VERSIONAR
+# ---------------------------------------------------------------------------
+# Conexión real a Profit (servidor, usuario y contraseña)
+config/database.local.yaml
+config/*.local.yaml
+
+# Selección de almacenes de la instalación
+config/warehouse_selection.json
+
+# Catálogo real de proveedores (lead times y descuentos negociados)
+config/proveedores.csv
+config/proveedores.csv.bak
+
+# Datos de ventas, stock y catálogo de la empresa
+data/
+
+# Reportes generados con datos reales (Excel, PDF, dashboards)
+outputs/
+
+# Código y salidas históricas con datos de producción
+legacy/
+
+# Brief interno del proyecto
+Base.md
+
+# Documentos internos con cifras comerciales
+docs/AUDITORIA_2026.md
+docs/PITCH_COMERCIAL.md
+docs/PRODUCTOS POR LABORATORIO.md
+
+# Office / temporales
+~$*
+*.xlsx
+*.xls

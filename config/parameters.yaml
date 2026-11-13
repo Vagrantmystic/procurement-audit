@@ -1,0 +1,177 @@
+system:
+  company: "Droguería Emmanuelle"
+  version: "2.0.0"
+  currency: "USD"
+
+data:
+  sales_file: "data/raw/ventas.xlsx"
+  catalog_file: "data/raw/catalogo.xlsx"
+  stock_file: "data/raw/stock.xlsx"
+  params_file: "config/parametros.xlsx"
+  provider_file: "config/proveedores.csv"
+  product_file: "config/productos.csv"
+
+warehouse:
+  # Almacenes operativos de venta/stock. El JSON local (no versionado) tiene prioridad.
+  selection_file: "config/warehouse_selection.json"
+  selected:
+    - CCS
+    - ZUL
+    - CONCCS
+    - CONZUL
+  # REC es el almacén de recepción: se incluye en compras para conservar el costo real,
+  # pero no se usa para stock ni ventas.
+  purchase_extra:
+    - REC
+  purchase_mode: "selected_plus_extra"   # selected_only | selected_plus_extra
+  default_when_empty:
+    - CCS
+    - ZUL
+    - CONCCS
+    - CONZUL
+  stock_source: "saStockAlmacen"         # tabla con co_alma; v_saStockActual no la tiene
+  allow_empty: false
+
+analysis:
+  # Ventana usada para ABC/XYZ y para estimar demanda reciente (días hacia atrás
+  # desde la última fecha de venta del archivo o desde --as-of).
+  window_days: 365
+  min_history_weeks: 12
+  abc_value_thresholds: [80.0, 95.0]
+  abc_volume_thresholds: [70.0, 90.0]
+  # CV de la demanda en periodos de 28 días. Calibrado para una droguería con
+  # demanda intermitente: X = relativamente estable, Y = variable, Z = errática.
+  # Revise la distribución en la hoja PRECISIÓN MODELOS y recalibre si cambia.
+  xyz_cv_thresholds: [1.0, 2.0]
+  xyz_period_days: 28
+  xyz_periods: 13
+  active_days: 60
+  inactive_days: 120
+  new_product_days: 90
+
+forecasting:
+  horizon_days: 30
+  review_period_days: 7
+  backtest_months: 6
+  min_train_weeks: 20
+  season_length_weeks: 52
+  min_sales_events: 3
+  candidate_models:
+    - naive
+    - ma4
+    - ma8
+    - ses
+    - holt
+    - seasonal_naive
+    - croston
+    - tsb
+    - ensemble
+  selection_metric: "wape"
+
+inventory:
+  default_lead_time: 30
+  default_review_period: 7
+  default_multiplier: 24
+  min_order_quantity: 24
+  # Nivel de servicio para el stock de seguridad (0.90 / 0.95 / 0.975 / 0.99)
+  service_level: 0.95
+  # Buffer fijo adicional cuando no hay error histórico suficiente
+  safety_buffer_days: 15
+  # Tope del stock de seguridad expresado en días de demanda
+  max_safety_days: 30
+  max_coverage_days: 120
+  # Base de cálculo de la OC: ACT = stock físico; COM se descuenta si es confiable.
+  # LLE (por llegar) NUNCA se suma como disponible.
+  oc_base: "ACT"
+  use_committed_in_oc: true
+  # Política de tránsito:
+  #   block    = si LLE > 0, no se emite OC automática hasta validar el pedido
+  #   validate = solo bloquea si LLE está confirmado/OC abierta; si no, calcula con ACT
+  #   ignore   = no bloquea, pero tampoco suma LLE (puede duplicar si el tránsito es real)
+  lle_policy: "block"
+  lle_max_age_days: 90
+  lle_protection_buffer_days: 15
+  # Demanda mínima prevista a 30 días para sugerir compra de un producto C sin stock
+  min_forecast_30d: 1.0
+  # Margen bruto usado para estimar el costo de productos sin catálogo
+  default_margin_pct: 15.0
+  # Margen mínimo aceptable después de un aumento de costo
+  min_margin_pct: 5.0
+  order_cost_usd: 25.0
+  holding_rate: 0.25
+  # Política cuando un producto no tiene stock informado:
+  #   minimum = sugiere la demanda del lead time + revisión (recomendado)
+  #   zero    = asume stock 0 y pide el objetivo completo
+  #   skip    = no genera orden, solo alerta
+  unknown_stock_policy: "minimum"
+
+lifecycle:
+  # Días sin venta para marcar EN_OBSERVACION (no bloquea compra, solo advierte)
+  observation_days: 90
+  # Días sin venta con stock para marcar OBSOLETO (bloquea compra)
+  obsolete_days: 180
+  # Días para vencer para entrar en LIQUIDACION (si el dato existe)
+  liquidation_days: 180
+  # Estados que bloquean la compra y excluyen del cálculo de OC
+  block_states:
+    - EOL
+    - OBSOLETO
+    - LIQUIDACION
+    - EXCLUIDO
+    - AGOTADO
+
+price:
+  # Ventana de referencia: promedio ponderado de compras previas, en USD
+  reference_days: 90
+  previous_window_days: 90
+  recent_window_days: 30
+  # Umbrales de variación de costo (%)
+  warning_pct: 5.0
+  approval_pct: 10.0
+  max_increase_pct: 20.0
+  # Impacto anualizado que escala la aprobación (USD)
+  impact_threshold_usd: 2000.0
+  # Si el precio supera el techo, no se emite OC automática
+  block_above_ceiling: true
+  # Exigir referencia para productos con costo estimado
+  require_reference_for_estimated: false
+
+
+alerts:
+  critical_stock_days: 7
+  low_stock_days: 15
+  excess_stock_days: 540
+  trend_change_pct: 30.0
+  trend_min_units: 20
+  big_purchase_usd: 10000.0
+  uncertainty_wape: 60.0
+
+ventas:
+  default_days: 90
+  max_days: 366
+  cache_ttl_seconds: 900
+  top_n: 10
+  # Dimensión canónica de laboratorio (no usar saLinea: esa es línea terapéutica)
+  laboratorio_file: "docs/PRODUCTOS POR LABORATORIO.md"
+  # Las consultas en paralelo mejoran el tiempo en frío, pero en algunas
+  # instalaciones de SQL Server Express con un solo hilo de aplicación
+  # conviene dejarlas en serie. El cache hace que la segunda carga sea < 1 s.
+  parallel_queries: false
+
+audit:
+  # Umbrales de la auditoría de compras (días de cobertura)
+  target_coverage_days: 90
+  critical_coverage_days: 15
+  low_coverage_days: 30
+  overbuy_coverage_days: 180
+  default_lead_time_days: 30
+  top_n: 20
+
+output:
+  dir: "outputs"
+  open_when_done: true
+  dashboard: true
+  excel_prefix: "ordenes_compra"
+
+logging:
+  level: "INFO"

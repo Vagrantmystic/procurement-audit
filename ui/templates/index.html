@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Centro de Compras · Droguería Emmanuelle</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">DE</div>
+    <div><strong>Droguería</strong><span>Emmanuelle</span></div>
+  </div>
+  <nav>
+    <button class="nav active" data-tab="resumen"><span>▦</span> Resumen</button>
+    <button class="nav" data-tab="auditoria"><span>◔</span> Auditoría 2026</button>
+    <button class="nav" data-tab="ordenes"><span>▤</span> Órdenes de compra</button>
+    <a class="nav" href="/ventas"><span>◔</span> Ventas (BI)</a>
+    <button class="nav" data-tab="ml"><span>◈</span> Modelos ML / DL</button>
+    <button class="nav" data-tab="config"><span>⚙</span> Configuración</button>
+  </nav>
+  <div class="db-status" id="dbStatus">
+    <span class="dot"></span><span id="dbText">Verificando Profit...</span>
+  </div>
+</aside>
+
+<main>
+  <header class="topbar">
+    <div>
+      <h1 id="pageTitle">Centro de compras</h1>
+      <p id="pageSub">Profit 2K12 · solo lectura · datos en vivo</p>
+    </div>
+    <div class="top-actions">
+      <span class="pill" id="lastRun">Sin ejecuciones en esta sesión</span>
+    </div>
+  </header>
+
+  <section class="tab active" id="tab-resumen">
+    <div class="hero">
+      <div>
+        <h2>Comprar mejor empieza por saber qué pasó.</h2>
+        <p>Conecte Profit, audite las compras del año y genere órdenes con demanda, stock y tránsito reales.</p>
+        <div class="hero-actions">
+          <button class="btn primary" onclick="go('auditoria')">Auditar compras</button>
+          <button class="btn ghost" onclick="go('ordenes')">Generar órdenes</button>
+        </div>
+      </div>
+      <div class="hero-badge">Solo lectura<br><small>sin riesgo para el ERP</small></div>
+    </div>
+    <div class="grid two" id="resumenCards">
+      <article class="card placeholder"><h3>Auditoría</h3><p>Ejecute la auditoría para ver compra, venta, margen, quiebres y capital inmovilizado.</p></article>
+      <article class="card placeholder"><h3>Órdenes</h3><p>Genere la propuesta de compra usando inventario y tránsito del ERP.</p></article>
+    </div>
+    <article class="card" id="resumenFindings" hidden>
+      <h3>Últimos hallazgos</h3>
+      <ul class="findings" id="lastFindings"></ul>
+    </article>
+  </section>
+
+  <section class="tab" id="tab-auditoria">
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Auditoría de compras</h2><p>¿Compramos bien? ¿Qué nos falta? Compra vs venta, margen, quiebres y sobrecompra.</p></div>
+      </div>
+      <form class="form-row" id="auditForm">
+        <label>Año<input type="number" id="auditYear" value="2026" min="2023" max="2030"></label>
+        <label>Fecha de corte<input type="text" id="auditAsOf" placeholder="23/10/2026"></label>
+        <button class="btn primary" type="submit">Ejecutar auditoría</button>
+        <span class="hint">Consulta Profit en solo lectura. Tarda ~30 s.</span>
+      </form>
+    </article>
+    <div id="auditResult"></div>
+  </section>
+
+  <section class="tab" id="tab-ordenes">
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Órdenes de compra sugeridas</h2><p>Usa ventas, stock actual, tránsito y lead times del ERP. Genera Excel con prioridades y justificación.</p></div>
+      </div>
+      <form class="form-row" id="ordersForm">
+        <label>Fecha de corte<input type="text" id="ordersAsOf" placeholder="23/10/2026"></label>
+        <label>Nivel de servicio<input type="number" id="ordersService" step="0.005" value="0.95" min="0.8" max="0.99"></label>
+        <label>Lead time (días)<input type="number" id="ordersLead" value="30" min="1" max="180"></label>
+        <button class="btn primary" type="submit">Generar órdenes</button>
+        <span class="hint">Tarda ~60 s. Genera el Excel en outputs.</span>
+      </form>
+    </article>
+    <div id="ordersResult"></div>
+  </section>
+
+  <section class="tab" id="tab-ml">
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Modelos de demanda: clásico, ML y red neuronal</h2>
+          <p>Validación temporal de 6 meses. Compara media móvil, gradient boosting y MLP; el híbrido usa MLP donde aporta.</p></div>
+      </div>
+      <div class="form-row">
+        <button class="btn primary" id="mlBtn">Entrenar y comparar</button>
+        <span class="hint">Entrena con 2023–2026 y valida los últimos 6 meses. Tarda ~15 s.</span>
+      </div>
+      <div id="mlResult"></div>
+    </article>
+  </section>
+
+  {% include "config.html" %}
+
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="overlay">
+    <div class="spinner"></div>
+    <div><strong id="overlayTitle">Procesando...</strong><p id="overlayText">Consultando Profit. No cierre esta pestaña.</p></div>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
